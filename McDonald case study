@@ -1,0 +1,46 @@
+import pandas as pd
+import numpy as np
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+from sklearn.metrics import adjusted_rand_score
+from sklearn.mixture import GaussianMixture
+from sklearn.ensemble import RandomForestClassifier
+from rpy2.robjects import pandas2ri
+from rpy2.robjects.packages import importr
+from rpy2.robjects.conversion import localconverter
+
+# Load the McDonald's dataset
+macd = importr("mcdonalds.csv")
+
+McDonald = macd.data("mcdonalds")
+
+# Convert R dataframe to Pandas dataframe
+with localconverter(pandas2ri.converter):
+    McDonald = pandas2ri.ri2py_dataframe(McDonald)
+
+# Convert "Yes"/"No" to 1/0
+McDonald.iloc[:, 1:12] = (McDonald.iloc[:, 1:12] == "Yes").astype(int)
+
+# Perform PCA
+md_x = McDonald.iloc[:, 1:12]
+pca = PCA()
+md_pca = pca.fit_transform(md_x)
+
+# K-means clustering
+kmeans = KMeans(n_clusters=4, random_state=1234)
+md_k4 = kmeans.fit_predict(md_x)
+
+# Hierarchical clustering
+from scipy.spatial.distance import pdist, squareform
+from scipy.cluster.hierarchy import linkage, dendrogram
+import matplotlib.pyplot as plt
+
+md_vclust = linkage(squareform(pdist(md_x.T)), method='complete')
+dendrogram(md_vclust, labels=md_x.columns)
+plt.show()
+
+# Plotting
+plt.scatter(md_pca[:, 0], md_pca[:, 1], c=md_k4, cmap='viridis')
+plt.xlabel("Principal Component 1")
+plt.ylabel("Principal Component 2")
+plt.show()
